@@ -79,7 +79,7 @@ module.exports = {
     const channel = message.guild.channels.cache.get(channelId);
     if (!channel || !channel.isTextBased()) return message.reply("⚠️ Channel ID tidak valid.");
 
-    await message.reply(`✅ Dashboard akan dikirim ke <#${channel.id}> dan auto-update tiap 15 detik.`);
+    await message.reply(`✅ Bot RealTime Status.`);
 
     const sendOrUpdateDashboard = async () => {
       const bots = await message.guild.members.fetch().then(ms => ms.filter(m => m.user.bot));
