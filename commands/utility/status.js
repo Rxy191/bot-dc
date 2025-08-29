@@ -1,15 +1,31 @@
-const { EmbedBuilder } = require("discord.js");
+const { EmbedBuilder, PermissionsBitField } = require("discord.js");
 
 module.exports = {
-  name: "statusbots",
-  description: "📡 Cek status semua bot di server (auto-update setiap 15 detik)",
+  name: "status",
+  description: "📡 Auto-update embed status semua bot di server (tanya channel ID)",
   async execute(message) {
-    const channel = message.guild.channels.cache.find(
-      ch => ch.name === "bot-status" && ch.isTextBased()
-    );
-    if (!channel) return message.reply("⚠️ Channel #bot-status tidak ditemukan.");
+    // Cek permission user
+    if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+      return message.reply("⚠️ Kamu harus punya permission Administrator untuk pakai command ini.");
+    }
 
-    // Fungsi untuk kirim atau update embed
+    // Tanya channel ID
+    await message.reply("📌 Masukkan **ID channel** tempat embed status dikirim:");
+
+    const filter = m => m.author.id === message.author.id;
+    const collected = await message.channel.awaitMessages({ filter, max: 1, time: 30000, errors: ["time"] })
+      .catch(() => null);
+
+    if (!collected) return message.reply("⏰ Waktu habis, command dibatalkan.");
+
+    const channelId = collected.first().content.trim();
+    const channel = message.guild.channels.cache.get(channelId);
+
+    if (!channel || !channel.isTextBased()) return message.reply("⚠️ Channel ID tidak valid atau bukan text channel.");
+
+    message.reply(`✅ Embed status akan dikirim ke <#${channel.id}> dan auto-update setiap 15 detik.`);
+
+    // Fungsi kirim/update embed
     const sendOrUpdateEmbed = async () => {
       const bots = message.guild.members.cache.filter(m => m.user.bot);
       if (bots.size === 0) return;
@@ -70,7 +86,5 @@ module.exports = {
 
     // Auto-update setiap 15 detik
     setInterval(sendOrUpdateEmbed, 15000);
-
-    message.reply("✅ Embed status bot sudah aktif dan akan auto-update setiap 15 detik.");
   },
 };
