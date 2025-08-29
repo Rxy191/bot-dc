@@ -1,50 +1,56 @@
 const fs = require("fs");
 const path = require("path");
-const { Client, Collection, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, Collection } = require("discord.js");
 require("dotenv").config();
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
 client.commands = new Collection();
+const prefix = "$";
 
-// ===== Load Commands =====
+// Load command files
 const foldersPath = path.join(__dirname, "commands");
 const commandFolders = fs.readdirSync(foldersPath);
 
 for (const folder of commandFolders) {
   const commandsPath = path.join(foldersPath, folder);
-  const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
-  
+  const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"));
   for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
-    if ("data" in command && "execute" in command) {
-      client.commands.set(command.data.name, command);
-    }
+    const command = require(path.join(commandsPath, file));
+    client.commands.set(command.name, command);
   }
 }
 
-// ===== Load Events =====
-const eventsPath = path.join(__dirname, "events");
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith(".js"));
+// Event ready
+client.once("ready", () => {
+  console.log(`✅ Bot ${client.user.tag} online!`);
+});
 
-for (const file of eventFiles) {
-  const filePath = path.join(eventsPath, file);
-  const event = require(filePath);
-  if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args, client));
-  } else {
-    client.on(event.name, (...args) => event.execute(...args, client));
+// Event messageCreate
+client.on("messageCreate", async (message) => {
+  if (!message.content.startsWith(prefix) || message.author.bot) return;
+
+  const args = message.content.slice(prefix.length).trim().split(/ +/);
+  const cmdName = args.shift().toLowerCase();
+
+  const command = client.commands.get(cmdName);
+  if (!command) return;
+
+  try {
+    await command.execute(message, args);
+  } catch (err) {
+    console.error(err);
+    message.reply("❌ Ada error pas jalanin command.");
   }
-}
+});
 
 client.login(process.env.DISCORD_TOKEN);

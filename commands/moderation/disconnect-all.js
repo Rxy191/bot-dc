@@ -1,24 +1,18 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
-
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName("disconnect-all")
-    .setDescription("📤 Kick semua member dari voice channel")
-    .setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers),
+  name: "disconnect-all",
+  description: "📤 Kick semua member dari voice channel",
+  async execute(message) {
+    const member = message.member;
+    const vc = member.voice.channel;
 
-  async execute(interaction) {
-    const { guild } = interaction;
+    if (!vc) return message.reply("❌ Lo harus ada di voice channel dulu.");
+
     let disconnected = 0;
+    vc.members.forEach(mem => {
+      mem.voice.disconnect().catch(() => {});
+      disconnected++;
+    });
 
-    guild.channels.cache
-      .filter(c => c.type === 2) // type 2 = voice
-      .forEach(vc => {
-        vc.members.forEach(member => {
-          member.voice.disconnect();
-          disconnected++;
-        });
-      });
-
-    await interaction.reply(`✅ ${disconnected} user berhasil di-disconnect dari voice channel.`);
+    message.reply(`✅ ${disconnected} user berhasil di-disconnect dari ${vc.name}.`);
   },
 };

@@ -1,35 +1,25 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
-
 module.exports = {
-  data: new SlashCommandBuilder()
-    .setName("clear")
-    .setDescription("🧹 Hapus chat di channel ini")
-    .addIntegerOption(option =>
-      option.setName("jumlah")
-        .setDescription("Jumlah pesan terakhir yang mau dihapus (1-100). Pilih '0' untuk semua.")
-        .setRequired(true)
-    )
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+  name: "clear",
+  description: "🧹 Hapus chat di channel",
+  async execute(message, args) {
+    const jumlah = args[0]?.toLowerCase() === "all" ? 0 : parseInt(args[0]);
+    const channel = message.channel;
 
-  async execute(interaction) {
-    const jumlah = interaction.options.getInteger("jumlah");
-    const channel = interaction.channel;
+    if (jumlah === undefined || (jumlah !== 0 && (isNaN(jumlah) || jumlah < 1 || jumlah > 100))) {
+      return message.reply("⚠️ Masukkan angka 1-100 atau 'all' untuk hapus semua.");
+    }
 
     if (jumlah === 0) {
-      // Clear semua chat (max 100 per batch)
       let fetched;
       do {
         fetched = await channel.messages.fetch({ limit: 100 });
-        await channel.bulkDelete(fetched);
+        if (fetched.size === 0) break;
+        await channel.bulkDelete(fetched, true);
       } while (fetched.size >= 2);
-      return interaction.reply({ content: "✅ Semua pesan berhasil dihapus!", ephemeral: true });
-    }
-
-    if (jumlah < 1 || jumlah > 100) {
-      return interaction.reply({ content: "⚠️ Masukin angka 1-100 atau 0 untuk hapus semua.", ephemeral: true });
+      return message.reply("✅ Semua pesan berhasil dihapus!");
     }
 
     await channel.bulkDelete(jumlah, true);
-    interaction.reply({ content: `✅ ${jumlah} pesan terakhir udah dihapus!`, ephemeral: true });
+    message.reply(`✅ ${jumlah} pesan terakhir berhasil dihapus!`);
   },
 };
