@@ -2,11 +2,6 @@ module.exports = {
   name: "status",
   description: "📡 Cek status bot di server",
   async execute(message) {
-    const botList = [
-      "", // contoh bot lain
-      // bisa tambah ID bot lain
-    ];
-
     let statusMsg = "🤖 **Status Bot di Server:**\n\n";
 
     for (const botId of botList) {
