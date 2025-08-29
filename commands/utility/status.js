@@ -32,25 +32,37 @@ function buildBotEmbed(member, lastState) {
   const now = Date.now();
   const rec = lastState.get(member.id) || { status, changedAt: now };
 
+  // update timestamp jika status berubah
   if (rec.status !== status) lastState.set(member.id, { status, changedAt: now });
   else if (!lastState.has(member.id)) lastState.set(member.id, rec);
 
   const sinceMs = now - (lastState.get(member.id)?.changedAt ?? now);
-  const color = status === "online" ? 0x2ecc71 : status === "idle" ? 0xf1c40f : status === "dnd" ? 0xe74c3c : 0x95a5a6;
+
+  const statusColors = { online: 0x2ecc71, idle: 0xf1c40f, dnd: 0xe74c3c, offline: 0x7f8c8d };
+  const color = statusColors[status] || 0x95a5a6;
+
+  // Status emoji di sebelah avatar
+  const emoji = statusEmoji(status);
+
+  // Activity
+  let activityText = getActivityText(member.presence);
 
   return new EmbedBuilder()
-    .setAuthor({ name: member.displayName, iconURL: member.user.displayAvatarURL() })
-    .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 64 }))
+    .setAuthor({
+      name: `${member.displayName} ${emoji}`,
+      iconURL: member.user.displayAvatarURL({ dynamic: true }),
+    })
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 128 }))
     .setColor(color)
     .addFields(
       {
-        name: "Info",
-        value: `${getActivityText(member.presence)}\n⏳ ${status === "offline" ? "Last Seen" : "Uptime"}: \`${fmtDuration(sinceMs)}\``,
+        name: "💬 Aktivitas",
+        value: activityText,
         inline: true
       },
       {
-        name: "Status",
-        value: statusEmoji(status),
+        name: "⏱ Uptime / Last Seen",
+        value: `${status === "offline" ? "Last Seen" : "Uptime"}: \`${fmtDuration(sinceMs)}\``,
         inline: true
       }
     )
@@ -58,11 +70,12 @@ function buildBotEmbed(member, lastState) {
     .setTimestamp();
 }
 
+
 // Map untuk simpen lastState tiap bot
 const lastState = new Map();
 
 module.exports = {
-  name: "statusbots",
+  name: "status",
   description: "📡 Kirim dashboard status semua bot di server (auto-update tiap 15 detik)",
   async execute(message) {
     if (!message.member.permissions.has(PermissionsBitField.Flags.Administrator))
