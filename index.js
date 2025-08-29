@@ -24,4 +24,7 @@ client.on("messageCreate", (message) => {
   }
 });
 
+console.log("TOKEN DARI ENV:", process.env.DISCORD_TOKEN ? process.env.DISCORD_TOKEN.slice(0, 10) + "..." : "❌ GA ADA");
+
+
 client.login(process.env.DISCORD_TOKEN);
