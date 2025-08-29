@@ -1,21 +1,45 @@
+const { EmbedBuilder } = require("discord.js");
+
 module.exports = {
   name: "status",
-  description: "📡 Cek status bot di server",
+  description: "📡 Cek status semua bot di server (embed modern)",
   async execute(message) {
-    let statusMsg = "🤖 **Status Bot di Server:**\n\n";
+    // Ambil semua member bot di server
+    const bots = message.guild.members.cache.filter(member => member.user.bot);
 
-    for (const botId of botList) {
-      const member = await message.guild.members.fetch(botId).catch(() => null);
-      if (!member) {
-        statusMsg += `❌ Tidak ditemukan → <@${botId}>\n`;
-        continue;
-      }
-
-      const status = member.presence?.status || "offline";
-      const emoji = status === "online" ? "🟢" : status === "idle" ? "🟡" : "🔴";
-      statusMsg += `**${member.user.username}** → ${emoji} ${status.toUpperCase()}\n`;
+    if (bots.size === 0) {
+      return message.reply("⚠️ Tidak ada bot di server ini.");
     }
 
-    message.reply(statusMsg);
+    const embed = new EmbedBuilder()
+      .setTitle("🤖 Status Semua Bot di Server")
+      .setColor("Blurple")
+      .setTimestamp();
+
+    bots.forEach(bot => {
+      const status = bot.presence?.status || "offline";
+      let emoji;
+      switch (status) {
+        case "online":
+          emoji = "🟢";
+          break;
+        case "idle":
+          emoji = "🟡";
+          break;
+        case "dnd":
+          emoji = "🔴";
+          break;
+        default:
+          emoji = "⚫";
+      }
+
+      embed.addFields({
+        name: `${emoji} ${bot.user.username}`,
+        value: `[Avatar](${bot.user.displayAvatarURL()})`,
+        inline: true,
+      });
+    });
+
+    message.reply({ embeds: [embed] });
   },
 };
