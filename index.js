@@ -1,81 +1,67 @@
-const { 
-  Client, 
-  GatewayIntentBits, 
-  EmbedBuilder 
-} = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildPresences, // wajib buat status
+    GatewayIntentBits.GuildPresences,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
 });
 
-const OWNER_ID = "535796365192724480"; // ganti dengan ID lo
-const TARGET_CHANNEL_ID = "1410904568857890902"; // channel tempat update embed
-
-// Simpan message embed supaya bisa diedit realtime
-let statusMessage;
+const OWNER_ID = "535796365192724480"; // ganti dengan user ID lo
+const BOT_IDS = ["155149108183695360", "276060004262477825"]; // isi dengan ID bot2 target
 
 client.once("ready", () => {
-  console.log(`✅ Bot ${client.user.tag} udah online!`);
+  console.log(`✅ ${client.user.tag} sudah online!`);
 });
 
-// Command awal buat munculin embed status bot-bot
 client.on("messageCreate", async (message) => {
-  if (message.content === "!statusbots") {
-    if (message.author.id !== OWNER_ID) {
-      return message.reply("🚫 Bro, cuma owner yang boleh pake command ini.");
+  if (message.content === "!status") {
+    if (message.author.id !== OWNER_ID) return;
+
+    let embeds = [];
+
+    for (const botId of BOT_IDS) {
+      const member = await message.guild.members.fetch(botId).catch(() => null);
+
+      if (!member) continue;
+
+      const status = member.presence?.status || "offline";
+      const emoji =
+        status === "online" ? "🟢" :
+        status === "idle"   ? "🟡" :
+        status === "dnd"    ? "🔴" :
+        "⚫️";
+
+      const embed = new EmbedBuilder()
+        .setAuthor({
+          name: member.user.tag,
+          iconURL: member.user.displayAvatarURL(),
+        })
+        .setDescription(`${emoji} **${status.toUpperCase()}**`)
+        .setThumbnail(member.user.displayAvatarURL())
+        .setColor(
+          status === "online"
+            ? 0x2ecc71 // hijau
+            : status === "idle"
+            ? 0xf1c40f // kuning
+            : status === "dnd"
+            ? 0xe74c3c // merah
+            : 0x95a5a6 // abu
+        )
+        .setTimestamp();
+
+      embeds.push(embed);
     }
 
-    const members = await message.guild.members.fetch();
-    const bots = members.filter((m) => m.user.bot);
-
-    if (bots.size === 0) {
-      return message.reply("⚠️ Ga ada bot lain di server ini.");
+    if (embeds.length === 0) {
+      return message.reply("⚠️ Ga ada bot yang bisa dicek di server ini.");
     }
 
-    const embed = makeStatusEmbed(bots);
-
-    // kirim embed ke channel
-    statusMessage = await message.channel.send({ embeds: [embed] });
+    message.reply({ embeds });
   }
 });
-
-// Realtime update kalau ada member berubah presence
-client.on("presenceUpdate", async () => {
-  if (!statusMessage) return;
-
-  const members = await statusMessage.guild.members.fetch();
-  const bots = members.filter((m) => m.user.bot);
-
-  const embed = makeStatusEmbed(bots);
-
-  // edit embed lama jadi baru
-  statusMessage.edit({ embeds: [embed] });
-});
-
-// Function bikin embed status
-function makeStatusEmbed(bots) {
-  const embed = new EmbedBuilder()
-    .setTitle("🤖 Status Bot di Server")
-    .setColor("#2f3136")
-    .setTimestamp();
-
-  bots.forEach((bot) => {
-    const status = bot.presence?.status || "offline";
-    const emoji = status === "online" ? "🟢" : status === "idle" ? "🟡" : "🔴";
-    embed.addFields({
-      name: bot.user.tag,
-      value: `${emoji} ${status.toUpperCase()}`,
-      inline: true,
-    });
-  });
-
-  return embed;
-}
 
 client.login(process.env.DISCORD_TOKEN);
